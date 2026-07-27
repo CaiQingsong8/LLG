@@ -1,0 +1,32 @@
+[
+    {
+        "question": "查一下上个月的饲料销量",
+        "must_contain_sql": ["query_feed_sales"],
+        "description": "验证意图路由是否正确命中饲料销量模板工具"
+    },
+    {
+        "question": "我想看 2026-05 的内部客户饲料销量",
+        "must_contain_sql": ["query_feed_sales", "2026-05", "内部"],
+        "description": "验证槽位填充（Slot Filling）参数提取是否准确"
+    },
+    {
+        "question": "2025年有哪些新客户",
+        "must_contain_sql": ["query_new_clients", "2025"],
+        "description": "验证意图路由是否正确命中新客户模板工具"
+    },
+    {
+        "question": "新客户下单饲料销量情况",
+        "must_contain_sql": ["d_class_code2", "21", "22", "open"],
+        "description": "验证是否同时结合了销量统计口径和新客户定义"
+    },
+    {
+        "question": "上月饲料销量",
+        "must_contain_sql": ["month_dt", "d_class_code2"],
+        "description": "验证时间感知和基础销量统计口径"
+    },
+    {
+        "question": "帮我查一下 dwd_so_saleorder 这个表的前5行数据",
+        "must_contain_sql": ["dwd_so_saleorder", "LIMIT 5"],
+        "description": "验证基础查询生成能力"
+    }
+]

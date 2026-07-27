@@ -1,0 +1,21 @@
+.DS_Store
+.idea/
+.ai/
+.claude/
+
+# ⚠️ 安全：禁止提交 .env 文件
+.env
+.env.*
+!.env.example
+!.env_example
+
+# ClickHouse Agent 运行时数据
+clickhouse_agent/chroma_db/
+clickhouse_agent/user_preferences/
+clickhouse_agent/chat_history/
+clickhouse_agent/offline_datasets/
+clickhouse_agent/prompts/
+
+# ClickHouse Agent v2 运行时数据
+clickhouse_agent_v2/chat_history/
+clickhouse_agent_v2/user_preferences/

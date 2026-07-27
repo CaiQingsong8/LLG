@@ -1,0 +1,30 @@
+[
+    {
+        "name": "销量统计口径 (饲料)",
+        "keywords": ["销量", "销售额", "卖了多少", "下单情况", "成交额", "饲料销"],
+        "table": "dwd_so_saleorder",
+        "logic": "1. 过滤月份字段 `month_dt`; 2. 默认看饲料销量（d_class_code2 在 '21', '22' 之间）; 3. 统计字段为 `f_sale_num`; 4. 必须剔除澳华内部客户（仅看外部客户）;5.订单状态默认不过滤",
+        "sql_snippet": "SELECT sum(f_sale_num) FROM alphafeed.dwd_so_saleorder WHERE month_dt = 'YYYY-MM' AND d_class_code2 IN ('21', '22') AND [外部客户过滤条件]"
+    },
+    {
+        "name": "配方",
+        "keywords": ["bom", "配方"],
+        "table": "dim_formula_product_day_snap",
+        "logic": "1. 日期必须用toYYYYMMDD(updt)限制，格式为8位数字，用户不说日期，默认用当前日期，分区用的toYYYYMMDD(updt)=toYYYYMMDD(today）=202606xx 这里用最新日期 别人说年月或者其他格式的你也要自己转化即可，年月则默认用这个日期的最后一天比如2026-05 如果是当月则用today 如果不是则用20260531; 2. 必须选择公司，即d_corp_,用户一般说公司全程或、公司简称，公司编码，也有可能会说模糊字段，即前几个字。比如四会，江门等; 3. 配方d_formula_code和产品d_product_code选填，一般两者选择其一即可，一般也是编码或者名称或者模糊查询;",
+        "sql_snippet": "select \n     a.bom_uid  \n    ,a.d_corp_code||a.d_product_code||a.d_formula_code||a.bom_version AS tag        \n    ,a.bom_version       \n    ,a.bom_status        \n    ,a.vertion_type      \n    ,a.is_default        \n    ,a.d_corp_id         \n    ,a.d_corp_code       \n    ,a.d_corp_name       \n    ,a.d_corp_sname      \n    ,a.d_product_id      \n    ,a.d_product_code    \n    ,a.d_product_name    \n    ,a.d_product_measure \n    ,a.d_product_type    \n    ,a.d_class_code1     \n    ,a.d_class_name1     \n    ,a.d_class_code2     \n    ,a.d_class_name2     \n    ,a.d_class_code4     \n    ,a.d_class_name4     \n    ,a.d_class_code6     \n    ,a.d_class_name6     \n    ,a.d_formula_id      \n    ,a.d_formula_code    \n    ,a.d_formula_name    \n    ,a.d_formula_measure \n    ,a.d_formula_type    \n    ,a.d_row_code1       \n    ,a.d_row_name1       \n    ,a.d_row_id          \n    ,a.d_row_code        \n    ,a.d_row_name        \n    ,a.d_row_measure     \n    ,a.d_row_type        \n    ,a.f_ratio_num    \n    ,case when b.d_class_code1='2'  then b.f_day_price/1000 else b.f_day_price end as f_day_price\n    ,a.f_parent_num       \n    ,a.f_row_amount      \n    ,a.is_right          \n    ,a.formula_date      \n    ,a.start_date        \n    ,a.end_date          \n    ,a.creationtime      \n    ,a.creator           \n    ,a.modifiedtime      \n    ,a.modifier          \n    ,a.updt              \n    ,a.d_brand_id        \n    ,a.d_brand_code      \n    ,a.d_brand_name      \nfrom dim_formula_product_day_snap a \nASOF left join  dws_ia_material_day_stock b\non   b.bill_dt>=left('${BILL_DT}',7)||'-01'\n\tAND b.bill_dt<=left('${BILL_DT}',7)||'-31'\n\tand b.f_day_price<>0 --保险开关 如果为0往后找不为0的价格\n\tand a.d_corp_id=b.d_corp_id\n\tand a.d_row_id=b.d_material_id\n\tand a.updt<=b.bill_dt\nwhere a.updt='${BILL_DT}'\n\n   ${IF(LEN(D_CORP_ID) = 0, \"\", \"AND a.d_corp_id IN ('\" + D_CORP_ID + \"')\")}\n   ${IF(LEN(D_CORP_CODE) = 0, \"\", \"AND a.d_corp_code IN ('\" + D_CORP_CODE + \"')\")}\n\n   ${IF(LEN(D_FORMULA_CODE) = 0, \"\", \"AND a.d_formula_code IN ('\" + D_FORMULA_CODE + \"')\")}\n   ${IF(LEN(D_PRODUCT_CODE) = 0, \"\", \"AND a.d_product_code IN ('\" + D_PRODUCT_CODE + \"')\")}\n   \n\n   order by a.d_corp_code ,a.d_product_code desc,a.creationtime desc,a.modifiedtime desc,a.bom_version desc,a.d_formula_code,a.d_row_code"
+    },
+    {
+        "name": "新客户定义",
+        "keywords": ["新客户", "新开户"],
+        "table": "DIM_CLIENT",
+        "logic": "1. 指本年新开户的客户; 2. 使用维表 `DIM_CLIENT` 中的 `开户日期` 字段判断（具体判断逻辑需结合字段值，通常是本年开户日期）; 3. 该表也可用于区分内外客户。",
+        "sql_snippet": "SELECT client_id FROM alphafeed.DIM_CLIENT WHERE [open_logic_for_this_year] AND [external_client_logic]"
+    },
+    {
+        "name": "物料",
+        "keywords": ["配方", "物料", "原料", "品种"],
+        "table": "DIM_MATERIAL",
+        "logic": "1. d_class_code1 d_class_code2 d_class_code4 d_class_code6 指的是物料的1 2 4 6位的分类编码; 2. 1开头为原料 2开头为成品 3为添加剂 4为包装物 5为配方 具体如下         ,case when c4.code is null and c2.code='3'  then '3'\n               when c3.code='1'  and c2.code='12' then  '3'\n               when c3.code='1'  then  '1'\n               when c3.code='4'  then  '4'\n\t\t\t   when c2.code='1' then '1'\n\t\t\t   when c2.code is null then c1.code\n               else c4.code \n\t\t\t   end as d_class_code1\n         ,case when c4.code is null and c2.code in('3','12')  then '添加剂'\n               when c3.code='1'  and c2.code='12' then  '添加剂'\n               when c3.code='1'  then  '原料'\n               when c3.code='4'  then  '包装物'\n               when c4.code='4' then '外袋配件'  \n\t\t\t   when c2.code='1' then '原料'\n\t\t\t   when c2.code is null then c1.name\n\t\t\t   else c4.name\n        end as d_class_name1;",
+        "sql_snippet": "SELECT client_id FROM alphafeed.DIM_CLIENT WHERE [open_logic_for_this_year] AND [external_client_logic]"
+    }
+]
